@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Fichaje de Horas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1976d2">
+
+    <!-- Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 15px;
+            text-align: center;
+        }
+        button {
+            padding: 15px;
+            margin: 8px;
+            font-size: 16px;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            margin-top: 15px;
+            background: white;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+        }
+        th {
+            background: #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<h2>⏱️ Fichaje de horas</h2>
+
+<button onclick="entrada()">🟢 Fichar entrada</button>
+<button onclick="salida()">🔴 Fichar salida</button>
+<button onclick="exportarExcel()">📊 Exportar a Excel</button>
+
+<table>
+    <thead>
+        <tr>
+            <th>Fecha</th>
+            <th>Entrada</th>
+            <th>Salida</th>
+            <th>Horas</th>
+        </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+</table>
+
+<script>
+let registros = JSON.parse(localStorage.getItem("registros")) || [];
+
+function entrada() {
+    let ahora = new Date();
+    registros.push({
+        fecha: ahora.toLocaleDateString(),
+        entrada: ahora.toLocaleTimeString(),
+        salida: "",
+        horas: ""
+    });
+    guardar();
+}
+
+function salida() {
+    let ahora = new Date();
+    let r = registros[registros.length - 1];
+    if (!r || r.salida) {
+        alert("No hay entrada abierta");
+        return;
+    }
+
+    r.salida = ahora.toLocaleTimeString();
+
+    let i = new Date(`${r.fecha} ${r.entrada}`);
+    let f = new Date(`${r.fecha} ${r.salida}`);
+    let horas = (f - i) / 36e5;
+
+    r.horas = horas.toFixed(2);
+    guardar();
+}
+
+function guardar() {
+    localStorage.setItem("registros", JSON.stringify(registros));
+    mostrar();
+}
+
+function mostrar() {
+    let t = document.getElementById("tabla");
+    t.innerHTML = "";
+    registros.forEach(r => {
+        t.innerHTML += `
+            <tr>
+                <td>${r.fecha}</td>
+                <td>${r.entrada}</td>
+                <td>${r.salida}</td>
+                <td>${r.horas}</td>
+            </tr>`;
+    });
+}
+
+function exportarExcel() {
+    let ws = XLSX.utils.json_to_sheet(registros);
+    let wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Fichajes");
+    XLSX.writeFile(wb, "fichaje_por_dias.xlsx");
+}
+
+mostrar();
+
+// Registrar service worker
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+</body>
+</html>
