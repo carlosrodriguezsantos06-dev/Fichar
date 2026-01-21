@@ -89,15 +89,26 @@ function salida() {
 
     r.salida = ahora.toLocaleTimeString();
 
-    let inicio = new Date(`${r.fecha} ${r.entrada}`);
-    let fin = new Date(`${r.fecha} ${r.salida}`);
+    // Parsear la entrada
+    let [hEntrada, mEntrada, sEntrada] = r.entrada.split(":").map(Number);
+    let inicio = new Date();
+    inicio.setHours(hEntrada, mEntrada, sEntrada, 0);
 
+    // Parsear la salida
+    let [hSalida, mSalida, sSalida] = r.salida.split(":").map(Number);
+    let fin = new Date();
+    fin.setHours(hSalida, mSalida, sSalida, 0);
+
+    // Diferencia en minutos
     let diffMs = fin - inicio;
     let totalMin = Math.floor(diffMs / 60000);
 
-    r.horas = Math.floor(totalMin / 60);
-    r.minutos = totalMin % 60;
-    r.tiempo = `${r.horas}h ${r.minutos}m`;
+    let horas = Math.floor(totalMin / 60);
+    let minutos = totalMin % 60;
+
+    r.horas = horas;
+    r.minutos = minutos;
+    r.tiempo = `${horas}h ${minutos}m`;
 
     guardar();
 }
