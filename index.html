@@ -123,6 +123,7 @@ function mostrar() {
 }
 
 function exportarExcel() {
+    // 1️⃣ Datos principales
     let datosExcel = registros.map(r => ({
         Fecha: r.fecha,
         Tipo: r.tipo,
@@ -133,11 +134,45 @@ function exportarExcel() {
         Tiempo: r.tiempo
     }));
 
+    // 2️⃣ Crear hoja
     let ws = XLSX.utils.json_to_sheet(datosExcel);
+
+    // 3️⃣ Crear totales por fecha y tipo
+    let resumen = {};
+    registros.forEach(r => {
+        let key = r.fecha + " | " + r.tipo;
+        if (!resumen[key]) resumen[key] = {horas: 0, minutos: 0};
+        resumen[key].horas += r.horas;
+        resumen[key].minutos += r.minutos;
+    });
+
+    // Ajustar minutos > 60
+    Object.keys(resumen).forEach(k => {
+        let h = resumen[k].horas;
+        let m = resumen[k].minutos;
+        h += Math.floor(m / 60);
+        m = m % 60;
+        resumen[k].horas = h;
+        resumen[k].minutos = m;
+        resumen[k].tiempo = `${h}h ${m}m`;
+    });
+
+    // 4️⃣ Añadir fila vacía
+    let filaInicio = registros.length + 2;
+    XLSX.utils.sheet_add_aoa(ws, [[""]], {origin: filaInicio});
+
+    // 5️⃣ Escribir totales
+    XLSX.utils.sheet_add_aoa(ws, [["Totales por día y tipo"]], {origin: filaInicio + 1});
+    let fila = filaInicio + 2;
+    Object.keys(resumen).forEach(k => {
+        XLSX.utils.sheet_add_aoa(ws, [[k, resumen[k].tiempo]], {origin: "A" + fila});
+        fila++;
+    });
+
+    // 6️⃣ Guardar archivo
     let wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Fichajes");
-
-    XLSX.writeFile(wb, "fichaje_trabajo_viaje.xlsx");
+    XLSX.writeFile(wb, "fichaje_totales.xlsx");
 }
 
 mostrar();
