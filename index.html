@@ -44,32 +44,36 @@
 
 <h2>⏱️ Fichaje de horas</h2>
 
-<button onclick="entrada()">🟢 Fichar entrada</button>
-<button onclick="salida()">🔴 Fichar salida</button>
-<button onclick="exportarExcel()">📊 Exportar a Excel</button>
+<button onclick="entrada('Trabajo')">🏭 Entrada trabajo</button>
+<button onclick="entrada('Viaje')">🚗 Entrada viaje</button>
+<button onclick="salida()">🔴 Salida</button>
 
 <table>
     <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Entrada</th>
-            <th>Salida</th>
-            <th>Tiempo</th>
-        </tr>
-    </thead>
+<tr>
+    <th>Fecha</th>
+    <th>Tipo</th>
+    <th>Entrada</th>
+    <th>Salida</th>
+    <th>Tiempo</th>
+</tr>
+</thead>
     <tbody id="tabla"></tbody>
 </table>
 
 <script>
 let registros = JSON.parse(localStorage.getItem("registros")) || [];
 
-function entrada() {
+function entrada(tipo) {
     let ahora = new Date();
     registros.push({
         fecha: ahora.toLocaleDateString(),
+        tipo: tipo,
         entrada: ahora.toLocaleTimeString(),
         salida: "",
-        horas: ""
+        horas: 0,
+        minutos: 0,
+        tiempo: ""
     });
     guardar();
 }
@@ -91,12 +95,9 @@ function salida() {
     let diffMs = fin - inicio;
     let totalMin = Math.floor(diffMs / 60000);
 
-    let horas = Math.floor(totalMin / 60);
-    let minutos = totalMin % 60;
-
-    r.horas = horas;
-    r.minutos = minutos;
-    r.tiempo = `${horas}h ${minutos}m`;
+    r.horas = Math.floor(totalMin / 60);
+    r.minutos = totalMin % 60;
+    r.tiempo = `${r.horas}h ${r.minutos}m`;
 
     guardar();
 }
@@ -111,18 +112,20 @@ function mostrar() {
     t.innerHTML = "";
     registros.forEach(r => {
         t.innerHTML += `
-            <tr>
-                <td>${r.fecha}</td>
-                <td>${r.entrada}</td>
-                <td>${r.salida}</td>
-                <td>${r.tiempo || ""}</td>
-            </tr>`;
+        <tr>
+            <td>${r.fecha}</td>
+            <td>${r.tipo}</td>
+            <td>${r.entrada}</td>
+            <td>${r.salida}</td>
+            <td>${r.tiempo}</td>
+        </tr>`;
     });
 }
 
 function exportarExcel() {
     let datosExcel = registros.map(r => ({
         Fecha: r.fecha,
+        Tipo: r.tipo,
         Entrada: r.entrada,
         Salida: r.salida,
         Horas: r.horas,
@@ -134,7 +137,8 @@ function exportarExcel() {
     let wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Fichajes");
 
-    XLSX.writeFile(wb, "fichaje_horas_minutos.xlsx");}
+    XLSX.writeFile(wb, "fichaje_trabajo_viaje.xlsx");
+}
 
 mostrar();
 
