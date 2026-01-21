@@ -54,7 +54,7 @@
             <th>Fecha</th>
             <th>Entrada</th>
             <th>Salida</th>
-            <th>Horas</th>
+            <th>Tiempo</th>
         </tr>
     </thead>
     <tbody id="tabla"></tbody>
@@ -77,6 +77,7 @@ function entrada() {
 function salida() {
     let ahora = new Date();
     let r = registros[registros.length - 1];
+
     if (!r || r.salida) {
         alert("No hay entrada abierta");
         return;
@@ -84,11 +85,19 @@ function salida() {
 
     r.salida = ahora.toLocaleTimeString();
 
-    let i = new Date(`${r.fecha} ${r.entrada}`);
-    let f = new Date(`${r.fecha} ${r.salida}`);
-    let horas = (f - i) / 36e5;
+    let inicio = new Date(`${r.fecha} ${r.entrada}`);
+    let fin = new Date(`${r.fecha} ${r.salida}`);
 
-    r.horas = horas.toFixed(2);
+    let diffMs = fin - inicio;
+    let totalMin = Math.floor(diffMs / 60000);
+
+    let horas = Math.floor(totalMin / 60);
+    let minutos = totalMin % 60;
+
+    r.horas = horas;
+    r.minutos = minutos;
+    r.tiempo = `${horas}h ${minutos}m`;
+
     guardar();
 }
 
@@ -106,17 +115,26 @@ function mostrar() {
                 <td>${r.fecha}</td>
                 <td>${r.entrada}</td>
                 <td>${r.salida}</td>
-                <td>${r.horas}</td>
+                <td>${r.tiempo || ""}</td>
             </tr>`;
     });
 }
 
 function exportarExcel() {
-    let ws = XLSX.utils.json_to_sheet(registros);
+    let datosExcel = registros.map(r => ({
+        Fecha: r.fecha,
+        Entrada: r.entrada,
+        Salida: r.salida,
+        Horas: r.horas,
+        Minutos: r.minutos,
+        Tiempo: r.tiempo
+    }));
+
+    let ws = XLSX.utils.json_to_sheet(datosExcel);
     let wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Fichajes");
-    XLSX.writeFile(wb, "fichaje_por_dias.xlsx");
-}
+
+    XLSX.writeFile(wb, "fichaje_horas_minutos.xlsx");}
 
 mostrar();
 
