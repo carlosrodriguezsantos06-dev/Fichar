@@ -47,6 +47,7 @@
 <button onclick="entrada('Trabajo')">🏭 Entrada trabajo</button>
 <button onclick="entrada('Viaje')">🚗 Entrada viaje</button>
 <button onclick="salida()">🔴 Salida</button>
+<button onclick="exportarExcel()">📊 Exportar a Excel</button>
 
 <table>
     <thead>
@@ -89,13 +90,13 @@ function salida() {
 
     r.salida = ahora.toLocaleTimeString();
 
-    // Parsear la entrada
-    let [hEntrada, mEntrada, sEntrada] = r.entrada.split(":").map(Number);
+    // Parsear horas y minutos desde r.entrada y r.salida
+    const [hEntrada, mEntrada, sEntrada] = r.entrada.split(":").map(Number);
+    const [hSalida, mSalida, sSalida] = r.salida.split(":").map(Number);
+
     let inicio = new Date();
     inicio.setHours(hEntrada, mEntrada, sEntrada, 0);
 
-    // Parsear la salida
-    let [hSalida, mSalida, sSalida] = r.salida.split(":").map(Number);
     let fin = new Date();
     fin.setHours(hSalida, mSalida, sSalida, 0);
 
