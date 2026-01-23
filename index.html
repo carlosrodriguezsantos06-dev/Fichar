@@ -276,6 +276,30 @@ function limpiarRegistros() {
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js");
 }
+function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    if (!email || !password) {
+        alert("Introduce email y contraseña");
+        return;
+    }
+
+    window.firebaseSignIn(window.firebaseAuth, email, password)
+        .catch(err => alert(err.message));
+}
+window.firebaseOnAuthStateChanged(window.firebaseAuth, user => {
+    const loginBox = document.getElementById("loginBox");
+
+    if (user) {
+        // Usuario conectado
+        loginBox.style.display = "none";
+        console.log("Usuario logueado:", user.email);
+    } else {
+        // Usuario NO conectado
+        loginBox.style.display = "block";
+    }
+});
 </script>
 
 </body>
