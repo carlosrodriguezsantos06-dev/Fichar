@@ -44,15 +44,13 @@
 
 <h2>⏱️ Fichaje de horas</h2>
 
-<button onclick="entrada('Trabajo')">🏭 Entrada trabajo</button>
-<button onclick="entrada('Viaje')">🚗 Entrada viaje</button>
-<button onclick="salida()">🔴 Salida</button>
-<button onclick="exportarExcel()">📊 Exportar a Excel</button>
-<div id="resumen" style="margin-top:15px;font-weight:bold;"></div>
-<div id="estado" style="margin-top:10px;color:#1976d2;font-weight:bold;"></div>
 <button id="btnTrabajo" onclick="entrada('Trabajo')">🏭 Entrada trabajo</button>
 <button id="btnViaje" onclick="entrada('Viaje')">🚗 Entrada viaje</button>
 <button id="btnSalida" onclick="salida()">🔴 Salida</button>
+<button onclick="exportarExcel()">📊 Exportar a Excel</button>
+<div id="resumen" style="margin-top:15px;font-weight:bold;"></div>
+<div id="estado" style="margin-top:10px;color:#1976d2;font-weight:bold;"></div>
+
 
 <table>
     <thead>
@@ -80,15 +78,23 @@ function actualizarBotones() {
     document.getElementById("btnSalida").disabled = !abierto;
 }
 
-function mostrarEstado() {
-    let e = document.getElementById("estado");
-    let r = registros[registros.length - 1];
+function mostrar() {
+    let t = document.getElementById("tabla");
+    t.innerHTML = "";
+    let hoy = new Date().toLocaleDateString();
 
-    if (r && r.entradaTimestamp && !r.salidaTimestamp) {
-        e.innerText = `🟢 ${r.tipo} en curso desde ${r.entradaTexto}`;
-    } else {
-        e.innerText = "⚪ No hay fichaje activo";
-    }
+    registros
+        .filter(r => r.fecha === hoy)
+        .forEach(r => {
+            t.insertAdjacentHTML("beforeend", `
+            <tr>
+                <td>${r.fecha}</td>
+                <td>${r.tipo}</td>
+                <td>${r.entradaTexto}</td>
+                <td>${r.salidaTexto || "-"}</td>
+                <td>${r.tiempo || "-"}</td>
+            </tr>`);
+        });
 }
 
 function entrada(tipo) {
@@ -117,14 +123,16 @@ function entrada(tipo) {
 
 function salida() {
 
-if (!confirm("¿Cerrar fichaje actual?")) return;
-    let ahora = new Date();
+    if (!confirm("¿Cerrar fichaje actual?")) return;
+
     let r = registros[registros.length - 1];
 
-    if (!r || r.salidaTimestamp) {
+    if (!r || !r.entradaTimestamp || r.salidaTimestamp) {
         alert("No hay entrada abierta");
         return;
     }
+
+    let ahora = new Date();
 
     r.salidaTimestamp = ahora.getTime();
     r.salidaTexto = ahora.toLocaleTimeString();
@@ -144,7 +152,7 @@ function guardar() {
     mostrar();
     calcularTotales();
     mostrarEstado();
-actualizarBotones();
+    actualizarBotones();
 }
 
 function mostrar() {
