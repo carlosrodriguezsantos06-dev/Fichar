@@ -49,6 +49,10 @@
 <button onclick="salida()">🔴 Salida</button>
 <button onclick="exportarExcel()">📊 Exportar a Excel</button>
 <div id="resumen" style="margin-top:15px;font-weight:bold;"></div>
+<div id="estado" style="margin-top:10px;color:#1976d2;font-weight:bold;"></div>
+<button id="btnTrabajo" onclick="entrada('Trabajo')">🏭 Entrada trabajo</button>
+<button id="btnViaje" onclick="entrada('Viaje')">🚗 Entrada viaje</button>
+<button id="btnSalida" onclick="salida()">🔴 Salida</button>
 
 <table>
     <thead>
@@ -66,6 +70,26 @@
 <script>
 let registros = JSON.parse(localStorage.getItem("registros")) || [];
 limpiarRegistros();
+
+function actualizarBotones() {
+    let r = registros[registros.length - 1];
+    let abierto = r && r.entradaTimestamp && !r.salidaTimestamp;
+
+    document.getElementById("btnTrabajo").disabled = abierto;
+    document.getElementById("btnViaje").disabled = abierto;
+    document.getElementById("btnSalida").disabled = !abierto;
+}
+
+function mostrarEstado() {
+    let e = document.getElementById("estado");
+    let r = registros[registros.length - 1];
+
+    if (r && r.entradaTimestamp && !r.salidaTimestamp) {
+        e.innerText = `🟢 ${r.tipo} en curso desde ${r.entradaTexto}`;
+    } else {
+        e.innerText = "⚪ No hay fichaje activo";
+    }
+}
 
 function entrada(tipo) {
     let ahora = new Date();
@@ -92,6 +116,8 @@ function entrada(tipo) {
 }
 
 function salida() {
+
+if (!confirm("¿Cerrar fichaje actual?")) return;
     let ahora = new Date();
     let r = registros[registros.length - 1];
 
@@ -117,6 +143,8 @@ function guardar() {
     localStorage.setItem("registros", JSON.stringify(registros));
     mostrar();
     calcularTotales();
+    mostrarEstado();
+actualizarBotones();
 }
 
 function mostrar() {
@@ -178,6 +206,8 @@ function exportarExcel() {
 
 mostrar();
 calcularTotales();
+mostrarEstado();
+actualizarBotones();
 
 function limpiarRegistros() {
     let cambiado = false;
