@@ -48,6 +48,7 @@
 <button onclick="entrada('Viaje')">🚗 Entrada viaje</button>
 <button onclick="salida()">🔴 Salida</button>
 <button onclick="exportarExcel()">📊 Exportar a Excel</button>
+<div id="resumen" style="margin-top:15px;font-weight:bold;"></div>
 
 <table>
     <thead>
@@ -67,11 +68,21 @@ let registros = JSON.parse(localStorage.getItem("registros")) || [];
 
 function entrada(tipo) {
     let ahora = new Date();
+
+    // evitar doble entrada abierta
+    let ultima = registros[registros.length - 1];
+    if (ultima && !ultima.salidaTimestamp) {
+        alert("Ya hay una entrada abierta");
+        return;
+    }
+
     registros.push({
         fecha: ahora.toLocaleDateString(),
-        tipo: tipo,
-        entrada: ahora.toLocaleTimeString(),
-        salida: "",
+        tipo,
+        entradaTexto: ahora.toLocaleTimeString(),
+        salidaTexto: "",
+        entradaTimestamp: ahora.getTime(),
+        salidaTimestamp: null,
         horas: 0,
         minutos: 0,
         tiempo: ""
@@ -83,33 +94,20 @@ function salida() {
     let ahora = new Date();
     let r = registros[registros.length - 1];
 
-    if (!r || r.salida) {
+    if (!r || r.salidaTimestamp) {
         alert("No hay entrada abierta");
         return;
     }
 
-    r.salida = ahora.toLocaleTimeString();
+    r.salidaTimestamp = ahora.getTime();
+    r.salidaTexto = ahora.toLocaleTimeString();
 
-    // Parsear horas y minutos desde r.entrada y r.salida
-    const [hEntrada, mEntrada, sEntrada] = r.entrada.split(":").map(Number);
-    const [hSalida, mSalida, sSalida] = r.salida.split(":").map(Number);
-
-    let inicio = new Date();
-    inicio.setHours(hEntrada, mEntrada, sEntrada, 0);
-
-    let fin = new Date();
-    fin.setHours(hSalida, mSalida, sSalida, 0);
-
-    // Diferencia en minutos
-    let diffMs = fin - inicio;
+    let diffMs = r.salidaTimestamp - r.entradaTimestamp;
     let totalMin = Math.floor(diffMs / 60000);
 
-    let horas = Math.floor(totalMin / 60);
-    let minutos = totalMin % 60;
-
-    r.horas = horas;
-    r.minutos = minutos;
-    r.tiempo = `${horas}h ${minutos}m`;
+    r.horas = Math.floor(totalMin / 60);
+    r.minutos = totalMin % 60;
+    r.tiempo = `${r.horas}h ${r.minutos}m`;
 
     guardar();
 }
@@ -117,21 +115,42 @@ function salida() {
 function guardar() {
     localStorage.setItem("registros", JSON.stringify(registros));
     mostrar();
+    calcularTotales();
 }
 
 function mostrar() {
     let t = document.getElementById("tabla");
     t.innerHTML = "";
+
     registros.forEach(r => {
-        t.innerHTML += `
+        t.insertAdjacentHTML("beforeend", `
         <tr>
             <td>${r.fecha}</td>
             <td>${r.tipo}</td>
-            <td>${r.entrada}</td>
-            <td>${r.salida}</td>
-            <td>${r.tiempo}</td>
-        </tr>`;
+            <td>${r.entradaTexto}</td>
+            <td>${r.salidaTexto || "-"}</td>
+            <td>${r.tiempo || "-"}</td>
+        </tr>`);
     });
+}
+
+function calcularTotales() {
+    let hoy = new Date().toLocaleDateString();
+    let trabajo = 0;
+    let viaje = 0;
+
+    registros
+        .filter(r => r.fecha === hoy && r.salidaTimestamp)
+        .forEach(r => {
+            let minutos = r.horas * 60 + r.minutos;
+            if (r.tipo === "Trabajo") trabajo += minutos;
+            if (r.tipo === "Viaje") viaje += minutos;
+        });
+
+    let total = trabajo + viaje;
+
+    document.getElementById("resumen").innerText =
+        `Hoy → 🏭 Trabajo: ${Math.floor(trabajo/60)}h ${trabajo%60}m | 🚗 Viaje: ${Math.floor(viaje/60)}h ${viaje%60}m | ⏱️ Total: ${Math.floor(total/60)}h ${total%60}m`;
 }
 
 function exportarExcel() {
@@ -157,6 +176,7 @@ function exportarExcel() {
     XLSX.writeFile(wb, "fichaje.xlsx");}
 
 mostrar();
+calcularTotales();
 
 // Registrar service worker
 if ("serviceWorker" in navigator) {
