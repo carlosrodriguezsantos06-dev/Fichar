@@ -160,13 +160,13 @@ function exportarExcel() {
     }
 
     const datosExcel = registros.map(r => ({
-        Fecha: r.fecha,
-        Tipo: r.tipo || "Trabajo",
-        Entrada: r.entrada,
-        Salida: r.salida,
-        Horas: r.horas,
-        Minutos: r.minutos,
-        Tiempo: r.tiempo
+    Fecha: r.fecha,
+    Tipo: r.tipo || "Trabajo",
+    Entrada: r.entradaTexto || r.entrada || "",
+    Salida: r.salidaTexto || r.salida || "",
+    Horas: r.horas ?? 0,
+    Minutos: r.minutos ?? 0,
+    Tiempo: r.tiempo || ""
     }));
 
     const ws = XLSX.utils.json_to_sheet(datosExcel);
