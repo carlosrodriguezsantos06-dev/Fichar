@@ -40,10 +40,28 @@ input, button {
   <div id="msg"></div>
 </div>
 
-<div id="app">
-  <p class="ok">✅ LA WEB SE VE</p>
-  <p id="userInfo">No logueado</p>
-  <button onclick="alert('Botón funcionando')">🔘 Botón de prueba</button>
+<div id="app" style="display:none;">
+
+  <button id="btnTrabajo" onclick="entrada('Trabajo')">🏭 Entrada trabajo</button>
+  <button id="btnViaje" onclick="entrada('Viaje')">🚗 Entrada viaje</button>
+  <button id="btnSalida" onclick="salida()">🔴 Salida</button>
+
+  <div id="estado" style="margin-top:10px;font-weight:bold;"></div>
+  <div id="resumen" style="margin-top:10px;font-weight:bold;"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Tipo</th>
+        <th>Entrada</th>
+        <th>Salida</th>
+        <th>Tiempo</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+
 </div>
 
 <!-- FIREBASE -->
@@ -84,6 +102,98 @@ onAuthStateChanged(auth, user => {
     userInfo.innerText = "No logueado";
   }
 });
+let registros = [];
+
+function fechaISO(d = new Date()) {
+  return d.toISOString().split("T")[0];
+}
+
+function escucharRegistros() {
+  const q = query(collection(db, "registros"), orderBy("entradaTimestamp"));
+  onSnapshot(q, snap => {
+    registros = [];
+    snap.forEach(d => registros.push({ id: d.id, ...d.data() }));
+    mostrar();
+    actualizarEstado();
+    actualizarBotones();
+    calcularTotales();
+  });
+}
+
+window.entrada = async function (tipo) {
+  if (registros.length && !registros[registros.length - 1].salidaTimestamp) {
+    alert("Ya hay una entrada abierta");
+    return;
+  }
+  const ahora = new Date();
+  await addDoc(collection(db, "registros"), {
+    fecha: fechaISO(ahora),
+    tipo,
+    entradaTexto: ahora.toLocaleTimeString(),
+    salidaTexto: "",
+    entradaTimestamp: ahora.getTime(),
+    salidaTimestamp: null,
+    horas: 0,
+    minutos: 0,
+    tiempo: ""
+  });
+};
+
+window.salida = async function () {
+  if (!confirm("¿Cerrar fichaje actual?")) return;
+  const r = registros[registros.length - 1];
+  if (!r || r.salidaTimestamp) return;
+
+  const ahora = new Date();
+  const min = Math.floor((ahora - r.entradaTimestamp) / 60000);
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+
+  await updateDoc(doc(db, "registros", r.id), {
+    salidaTexto: ahora.toLocaleTimeString(),
+    salidaTimestamp: ahora.getTime(),
+    horas: h,
+    minutos: m,
+    tiempo: `${h}h ${m}m`
+  });
+};
+
+function mostrar() {
+  tabla.innerHTML = "";
+  const hoy = fechaISO();
+  registros.filter(r => r.fecha === hoy).forEach(r => {
+    tabla.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${new Date(r.fecha).toLocaleDateString()}</td>
+        <td>${r.tipo}</td>
+        <td>${r.entradaTexto}</td>
+        <td>${r.salidaTexto || "-"}</td>
+        <td>${r.tiempo || "-"}</td>
+      </tr>
+    `);
+  });
+}
+
+function actualizarEstado() {
+  const r = registros[registros.length - 1];
+  estado.innerText = (r && !r.salidaTimestamp)
+    ? `🟢 ${r.tipo} en curso desde ${r.entradaTexto}`
+    : "⚪ No hay fichaje activo";
+}
+
+function actualizarBotones() {
+  const abierto = registros.length && !registros[registros.length - 1].salidaTimestamp;
+  btnTrabajo.disabled = abierto;
+  btnViaje.disabled = abierto;
+  btnSalida.disabled = !abierto;
+}
+
+function calcularTotales() {
+  let min = 0;
+  registros.filter(r => r.salidaTimestamp && r.fecha === fechaISO())
+    .forEach(r => min += r.horas * 60 + r.minutos);
+  resumen.innerText = `Hoy → ${Math.floor(min/60)}h ${min%60}m`;
+}
 </script>
 
 </body>
