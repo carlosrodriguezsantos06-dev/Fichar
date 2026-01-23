@@ -104,7 +104,6 @@ function mostrar() {
 function entrada(tipo) {
     let ahora = new Date();
 
-    // evitar doble entrada abierta
     let ultima = registros[registros.length - 1];
     if (ultima && !ultima.salidaTimestamp) {
         alert("Ya hay una entrada abierta");
@@ -114,7 +113,7 @@ function entrada(tipo) {
     registros.push({
         fecha: fechaISO(ahora),
         tipo,
-        fecha: fechaISO(ahora),
+        entradaTexto: ahora.toLocaleTimeString(),
         salidaTexto: "",
         entradaTimestamp: ahora.getTime(),
         salidaTimestamp: null,
@@ -122,6 +121,7 @@ function entrada(tipo) {
         minutos: 0,
         tiempo: ""
     });
+
     guardar();
 }
 
@@ -159,24 +159,9 @@ function guardar() {
     actualizarBotones();
 }
 
-function mostrar() {
-    let t = document.getElementById("tabla");
-    t.innerHTML = "";
-
-    registros.forEach(r => {
-        t.insertAdjacentHTML("beforeend", `
-        <tr>
-            <td>${new Date(r.fecha).toLocaleDateString()}</td>
-            <td>${r.tipo}</td>
-            <td>${r.entradaTexto}</td>
-            <td>${r.salidaTexto || "-"}</td>
-            <td>${r.tiempo || "-"}</td>
-        </tr>`);
-    });
-}
 
 function calcularTotales() {
-    let hoy = new Date().toLocaleDateString();
+    let hoy = fechaISO();
     let trabajo = 0;
     let viaje = 0;
 
