@@ -65,6 +65,7 @@
 
 <script>
 let registros = JSON.parse(localStorage.getItem("registros")) || [];
+limpiarRegistros();
 
 function entrada(tipo) {
     let ahora = new Date();
@@ -177,6 +178,38 @@ function exportarExcel() {
 
 mostrar();
 calcularTotales();
+
+function limpiarRegistros() {
+    let cambiado = false;
+
+    registros.forEach(r => {
+        // Normalizar entrada
+        if (!r.entradaTexto && r.entrada) {
+            r.entradaTexto = r.entrada;
+            cambiado = true;
+        }
+
+        // Normalizar salida
+        if (!r.salidaTexto && r.salida) {
+            r.salidaTexto = r.salida;
+            cambiado = true;
+        }
+
+        // Recalcular si hay timestamps
+        if (r.entradaTimestamp && r.salidaTimestamp) {
+            let diffMs = r.salidaTimestamp - r.entradaTimestamp;
+            let totalMin = Math.max(0, Math.floor(diffMs / 60000));
+
+            r.horas = Math.floor(totalMin / 60);
+            r.minutos = totalMin % 60;
+            r.tiempo = `${r.horas}h ${r.minutos}m`;
+        }
+    });
+
+    if (cambiado) {
+        localStorage.setItem("registros", JSON.stringify(registros));
+    }
+}
 
 // Registrar service worker
 if ("serviceWorker" in navigator) {
