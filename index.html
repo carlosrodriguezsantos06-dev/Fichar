@@ -78,17 +78,21 @@ function actualizarBotones() {
     document.getElementById("btnSalida").disabled = !abierto;
 }
 
+function fechaISO(date = new Date()) {
+    return date.toISOString().split("T")[0];
+}
+
 function mostrar() {
     let t = document.getElementById("tabla");
     t.innerHTML = "";
-    let hoy = new Date().toLocaleDateString();
+    let hoy = fechaISO();
 
     registros
         .filter(r => r.fecha === hoy)
         .forEach(r => {
             t.insertAdjacentHTML("beforeend", `
             <tr>
-                <td>${r.fecha}</td>
+                <td>${new Date(r.fecha).toLocaleDateString()}</td>
                 <td>${r.tipo}</td>
                 <td>${r.entradaTexto}</td>
                 <td>${r.salidaTexto || "-"}</td>
@@ -108,9 +112,9 @@ function entrada(tipo) {
     }
 
     registros.push({
-        fecha: ahora.toLocaleDateString(),
+        fecha: fechaISO(ahora),
         tipo,
-        entradaTexto: ahora.toLocaleTimeString(),
+        fecha: fechaISO(ahora),
         salidaTexto: "",
         entradaTimestamp: ahora.getTime(),
         salidaTimestamp: null,
@@ -162,7 +166,7 @@ function mostrar() {
     registros.forEach(r => {
         t.insertAdjacentHTML("beforeend", `
         <tr>
-            <td>${r.fecha}</td>
+            <td>${new Date(r.fecha).toLocaleDateString()}</td>
             <td>${r.tipo}</td>
             <td>${r.entradaTexto}</td>
             <td>${r.salidaTexto || "-"}</td>
