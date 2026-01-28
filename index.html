@@ -2,72 +2,63 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Prueba Firebase Login</title>
+<title>Fichaje sincronizado</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
   font-family: Arial, sans-serif;
   background: #f2f2f2;
-  padding: 20px;
+  padding: 15px;
   text-align: center;
 }
-input, button {
+button {
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   margin: 6px 0;
   font-size: 16px;
 }
-#app {
-  margin-top: 20px;
-  padding: 15px;
+table {
+  width: 100%;
+  border-collapse: collapse;
   background: white;
-  border-radius: 6px;
+  margin-top: 10px;
 }
-.ok { color: green; font-weight: bold; }
-.err { color: red; font-weight: bold; }
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+}
+th { background: #ddd; }
 </style>
 </head>
 
 <body>
 
-<h2>🔥 Firebase + Login (PRUEBA)</h2>
+<h2>⏱️ Fichaje de horas</h2>
 
-<div id="login">
-  <input id="email" type="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Contraseña">
-  <button id="btnLogin">Entrar</button>
-  <div id="msg"></div>
-</div>
+<button id="btnTrabajo" onclick="entrada('Trabajo')">🏭 Entrada trabajo</button>
+<button id="btnViaje" onclick="entrada('Viaje')">🚗 Entrada viaje</button>
+<button id="btnSalida" onclick="salida()">🔴 Salida</button>
 
-<div id="app" style="display:none;">
+<div id="estado" style="margin-top:10px;font-weight:bold;"></div>
+<div id="resumen" style="margin-top:10px;font-weight:bold;"></div>
 
-  <button id="btnTrabajo" onclick="entrada('Trabajo')">🏭 Entrada trabajo</button>
-  <button id="btnViaje" onclick="entrada('Viaje')">🚗 Entrada viaje</button>
-  <button id="btnSalida" onclick="salida()">🔴 Salida</button>
+<table>
+<thead>
+<tr>
+  <th>Fecha</th>
+  <th>Tipo</th>
+  <th>Entrada</th>
+  <th>Salida</th>
+  <th>Tiempo</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
 
-  <div id="estado" style="margin-top:10px;font-weight:bold;"></div>
-  <div id="resumen" style="margin-top:10px;font-weight:bold;"></div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Tipo</th>
-        <th>Entrada</th>
-        <th>Salida</th>
-        <th>Tiempo</th>
-      </tr>
-    </thead>
-    <tbody id="tabla"></tbody>
-  </table>
-
-</div>
-
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged }
+import { getAuth, signInAnonymously, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   getFirestore,
@@ -80,58 +71,46 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* 🔴 PEGA AQUÍ TU CONFIG REAL */
 const firebaseConfig = {
-  apiKey: "AIzaSyCyiq1UGqqpuSm26Pir-tgChofekR_Pf_g",
-  authDomain: "fichaje-horas-dea2b.firebaseapp.com",
-  projectId: "fichaje-horas-dea2b",
-  storageBucket: "fichaje-horas-dea2b.firebasestorage.app",
-  messagingSenderId: "230589894294",
-  appId: "1:230589894294:web:8389dc16fd9674a3bc3cb7"
+  apiKey: "AIzaSyCWlc7cvXXbU3-OhQv7d2B7F_ZmBPEjO2E",
+  authDomain: "fichaje-9cbac.firebaseapp.com",
+  projectId: "fichaje-9cbac",
+  storageBucket: "fichaje-9cbac.firebasestorage.app",
+  messagingSenderId: "140614563931",
+  appId: "1:140614563931:web:caf32170314f14b2f1e77e"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-const loginDiv = document.getElementById("login");
-const msg = document.getElementById("msg");
-const userInfo = document.getElementById("userInfo");
-
-document.getElementById("btnLogin").onclick = () => {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  signInWithEmailAndPassword(auth, email, password)
-    .catch(e => msg.innerHTML = `<p class="err">${e.message}</p>`);
-};
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    msg.innerHTML = "";
-    userInfo.innerText = `👤 Logueado como: ${user.email}`;
-  } else {
-    userInfo.innerText = "No logueado";
-  }
-});
 let registros = [];
 
+/* AUTH ANÓNIMO */
+signInAnonymously(auth);
+
+onAuthStateChanged(auth, user => {
+  if (user) escuchar();
+});
+
+/* UTIL */
 function fechaISO(d = new Date()) {
   return d.toISOString().split("T")[0];
 }
 
-function escucharRegistros() {
+/* FIRESTORE */
+function escuchar() {
   const q = query(collection(db, "registros"), orderBy("entradaTimestamp"));
   onSnapshot(q, snap => {
     registros = [];
     snap.forEach(d => registros.push({ id: d.id, ...d.data() }));
-    mostrar();
-    actualizarEstado();
-    actualizarBotones();
-    calcularTotales();
+    render();
   });
 }
 
-window.entrada = async function (tipo) {
-  if (registros.length && !registros[registros.length - 1].salidaTimestamp) {
+/* ACCIONES */
+window.entrada = async tipo => {
+  if (registros.length && !registros.at(-1).salidaTimestamp) {
     alert("Ya hay una entrada abierta");
     return;
   }
@@ -140,18 +119,14 @@ window.entrada = async function (tipo) {
     fecha: fechaISO(ahora),
     tipo,
     entradaTexto: ahora.toLocaleTimeString(),
-    salidaTexto: "",
     entradaTimestamp: ahora.getTime(),
     salidaTimestamp: null,
-    horas: 0,
-    minutos: 0,
     tiempo: ""
   });
 };
 
-window.salida = async function () {
-  if (!confirm("¿Cerrar fichaje actual?")) return;
-  const r = registros[registros.length - 1];
+window.salida = async () => {
+  const r = registros.at(-1);
   if (!r || r.salidaTimestamp) return;
 
   const ahora = new Date();
@@ -162,51 +137,43 @@ window.salida = async function () {
   await updateDoc(doc(db, "registros", r.id), {
     salidaTexto: ahora.toLocaleTimeString(),
     salidaTimestamp: ahora.getTime(),
-    horas: h,
-    minutos: m,
     tiempo: `${h}h ${m}m`
   });
 };
 
-function mostrar() {
+/* UI */
+function render() {
   tabla.innerHTML = "";
   const hoy = fechaISO();
+  let total = 0;
+
   registros.filter(r => r.fecha === hoy).forEach(r => {
-    tabla.insertAdjacentHTML("beforeend", `
+    if (r.salidaTimestamp) {
+      const [h, m] = r.tiempo.split(/[hm ]+/);
+      total += (+h * 60) + (+m || 0);
+    }
+    tabla.innerHTML += `
       <tr>
-        <td>${new Date(r.fecha).toLocaleDateString()}</td>
+        <td>${r.fecha}</td>
         <td>${r.tipo}</td>
         <td>${r.entradaTexto}</td>
         <td>${r.salidaTexto || "-"}</td>
         <td>${r.tiempo || "-"}</td>
-      </tr>
-    `);
+      </tr>`;
   });
-}
 
-function actualizarEstado() {
-  const r = registros[registros.length - 1];
-  estado.innerText = (r && !r.salidaTimestamp)
-    ? `🟢 ${r.tipo} en curso desde ${r.entradaTexto}`
-    : "⚪ No hay fichaje activo";
-}
+  estado.innerText = registros.length && !registros.at(-1).salidaTimestamp
+    ? `🟢 ${registros.at(-1).tipo} en curso`
+    : "⚪ Sin fichaje activo";
 
-function actualizarBotones() {
-  const abierto = registros.length && !registros[registros.length - 1].salidaTimestamp;
+  resumen.innerText = `Hoy → ${Math.floor(total/60)}h ${total%60}m`;
+
+  const abierto = registros.length && !registros.at(-1).salidaTimestamp;
   btnTrabajo.disabled = abierto;
   btnViaje.disabled = abierto;
   btnSalida.disabled = !abierto;
-}
-
-function calcularTotales() {
-  let min = 0;
-  registros.filter(r => r.salidaTimestamp && r.fecha === fechaISO())
-    .forEach(r => min += r.horas * 60 + r.minutos);
-  resumen.innerText = `Hoy → ${Math.floor(min/60)}h ${min%60}m`;
 }
 </script>
 
 </body>
 </html>
-
-
